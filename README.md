@@ -1,2 +1,2 @@
 # portfolioViewer
- Python porgram to view and monitor stocks
+ Python program to view and monitor stocks
