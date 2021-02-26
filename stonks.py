@@ -6,12 +6,19 @@ from tkinter import ttk
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
-from datetime import date
 
 
 class stockWindow(tk.Tk):
-    def  __init__(self):
+    def  __init__(self, tickerList):
         tk.Tk.__init__(self)
+        
+        self.tickers = tickerList
+        self.frameList = [stockFrame(self, ticker) for ticker in tickerList]
+        for frame in self.frameList: frame.pack()
+    
+    def startClocks(self):
+        for frame in self.frameList: frame.clock()
+        
 
 
 class stockFrame(tk.Frame):
@@ -22,9 +29,11 @@ class stockFrame(tk.Frame):
         self.ticker = ticker
         self.tickerData = yf.Ticker(ticker)
         
+        self.title = tk.Label(self, text = str(ticker) + ' - ' + self.tickerData.info['shortName'])
+        self.title.grid(column=0, row=1)
+        
         self.timeFrame = [0,1,0] #days, hours, minutes - default is 1 hour
         self.interval = '1m'
-        
         
         mc = mpf.make_marketcolors(base_mpf_style='yahoo', wick='inherit')
         style1 = mpf.make_mpf_style(marketcolors=mc, facecolor='darkslategrey', gridcolor='slategray', gridstyle='--')
@@ -36,8 +45,8 @@ class stockFrame(tk.Frame):
         self.axCandles.spines['bottom'].set_visible(False)
         
         self.canvas = FigureCanvasTkAgg(self.fig, self)
-        self.canvas.get_tk_widget().pack(expand=1)
-    
+        self.canvas.get_tk_widget().grid(column=0, row=0)
+        
     
     def update(self): 
         self.timeStart = datetime.now() - pd.DateOffset(days=self.timeFrame[0], hours=self.timeFrame[1], minutes=self.timeFrame[2])
@@ -49,16 +58,15 @@ class stockFrame(tk.Frame):
         mpf.plot(dfView, ax=self.axCandles, volume=self.axVolume, type='candle')
         self.canvas.draw()
         
+        
     def clock(self):
         print('updating!')
         self.update()
-        self.after(60000, self.clock) #run itself after 1 minute
+        self.after(60000, self.clock) #run itself after 1 minute    
         
     
-root=tk.Tk()
-frame = stockFrame(root, 'AAPL')
-frame.pack()
-frame.clock()
+root=stockWindow(['ENB.TO','ARKK'])
+root.startClocks()
 
 root.mainloop()
 
