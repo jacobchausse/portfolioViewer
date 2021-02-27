@@ -9,15 +9,25 @@ class portfolio():
         self.name = name
         
     def newStock(self):
-        # Check if stock is in tickerlist already if it
-        # is call stock.updateStock else create new stock object and to its list
-        # updates portfolio file
+        #check if stock is in tickerlist already if it
+        #is call stock.updateStock else create new stock object and to its list
+        #updates portfolio file (use savePortfolio)
+        pass
 
-    def loadPortfolio(self, dir):
-        # populate portfolio list with stock objects
+    def loadPortfolio(self, directory):
+        #populate portfolio list with stock objects from file
+        pass
 
-    def deleteStock(self, ticker, quanitity, price):
-        # 
+    def removeStock(self):
+        #check if this transaction can go through
+        #if it can, either remove correct amount by calling stock.subtractStock
+        #or delete the stock all together if the removed quantity = total quantity
+        #updates portfolio file (use savePortfolio)
+        pass
+    
+    def savePortfolio(self):
+        #saves the object to file, use the portfolio name
+        pass
 
 class stock():
 
@@ -26,15 +36,16 @@ class stock():
         self.quantity = quantity
         self.price = price
 
-    def addStock(self, newQuantity, newPrice):
-        # Determine average price
-        # update self quanitity and price with the average price
-        # ingest prior data 
-        totalQuantity = self.quantity + newQuantity
-        averagePrice = ( self.quantity * self.price + newQuantity * newPrice ) / totalQuantity
+    def addStock(self, buyQuantity, buyPrice):
+        #weighted average to update
+        totalQuantity = self.quantity + buyQuantity
+        averagePrice = ( self.quantity * self.price + buyQuantity * buyPrice ) / totalQuantity
         self.quantity = totalQuantity
         self.price = averagePrice
 
-    def removeStock(self):
-        #check if this transaction can go through
+    def subtractStock(self, sellQuantity):
+        #feasibility checks not handled here
+        self.quantity = self.quantity - sellQuantity
+        
+        
 

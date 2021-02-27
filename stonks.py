@@ -83,7 +83,10 @@ class stockFrame(tk.Frame):
         self.update()
         wait = self.intervalDict[self.interval]
         self.after(wait, self.clock) #run itself after 1 minute    
+ 
         
+ 
+#https://tradingview.com/chart/?symbol=BB
 
     
 def main():
