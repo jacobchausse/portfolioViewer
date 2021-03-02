@@ -10,6 +10,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
 import matplotlib.pyplot as plt
 
+# TODO if After hours show whole day 
+# TODO click on frame goes enlarged view 
 
 global backgroundColor, textColor, font, fontSize
 backgroundColor = '#17202e'
@@ -93,7 +95,7 @@ class stockFrame(tk.Frame):
         self.lbl_quantity.config(font=(fontName, fontSizeBig, 'bold'))
         
         #plot parameters
-        self.timeFrame = [0,0,30] #days, hours, minutes - default is 1 hour
+        self.timeFrame = [0,5,30] #days, hours, minutes - default is 1 hour
         self.interval = '1m'
         self.intervalDict = {'1m':60000, '5m':5*60000}
         
