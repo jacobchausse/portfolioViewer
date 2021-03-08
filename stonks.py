@@ -8,7 +8,6 @@ import pytz
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
-import matplotlib.pyplot as plt
 
 # TODO if After hours show whole day 
 # TODO click on frame goes enlarged view 
@@ -33,7 +32,7 @@ class stockWindow(tk.Tk):
         self.btn_addStock = tk.Button(self, text='Add', command = self.addStockWindow, bg=backgroundColor, fg=textColor)
         self.btn_addStock.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)
         
-        self.btn_addStock.grid(row=0, column=0)
+        self.btn_addStock.grid(row=0, column=0, sticky='e')
         self.stocksContainer1.grid(row=1,column=0,columnspan=2)
     
     def addStockWindow(self):
@@ -78,6 +77,7 @@ class addStockWindow(tk.Toplevel):
             self.destroy()
         else:
             print(output)
+            self.ent_ticker.replaceText('')
 
 
 
@@ -190,7 +190,13 @@ class stockFrame(tk.Frame):
         
         #Stock title
         self.lbl_title = tk.Label(self, text = str(ticker) + ' - ' + self.tickerData.info['shortName'], bg=backgroundColor, fg='white')
-        self.lbl_title.config(font=(fontName, fontSizeSmall, 'bold'))
+        self.lbl_title.config(font=(fontName, fontSizeBig, 'bold'))
+        
+        #Live indicator
+        self.live = tk.StringVar()
+        self.lbl_liveCircle = tk.Label(self, text = u'\u2B24', bg=backgroundColor)
+        self.lbl_live = tk.Label(self, textvariable = self.live, bg=backgroundColor, fg=textColor)
+        self.lbl_live.config(font=(fontName, fontSizeSmall, 'bold'))
         
         #price
         self.lbl_priceTitle = tk.Label(self, text = 'Price', bg=backgroundColor, fg=textColor)
@@ -223,7 +229,7 @@ class stockFrame(tk.Frame):
         self.lbl_quantity.config(font=(fontName, fontSizeBig, 'bold'))
         
         #plot parameters
-        self.timeFrame = [0,5,30] #days, hours, minutes - default is 1 hour
+        self.timeFrame = [0,1,0] #days, hours, minutes - default is 1 hour
         self.interval = '1m'
         self.intervalDict = {'1m':60000, '5m':5*60000, '15m':15*60000 }
         
@@ -257,10 +263,16 @@ class stockFrame(tk.Frame):
         
         #create canvas
         self.canvas = FigureCanvasTkAgg(self.fig, self)
-        self.canvas.get_tk_widget().bind("<Button-1>", self.printhello)
+        self.canvas.get_tk_widget().bind("<Double-Button-1>", self.printhello)
+        
+        #dataFrame
+        self.df = None
         
         #puts the widgets in the proper layout
         self.setLayout()
+        
+        #if set to True will not update the graph
+        self.stopClock = False
      
         
     def printhello(self, event):
@@ -270,27 +282,47 @@ class stockFrame(tk.Frame):
     def setLayout(self):
         pady = 0
         
-        self.lbl_title.grid(column=0, columnspan=2, row=7)
-        self.canvas.get_tk_widget().grid(column=0, row=0, rowspan=7)
+        self.lbl_title.grid(column=2, columnspan=2, row=7)
+        self.canvas.get_tk_widget().grid(column=0, columnspan=3, row=0, rowspan=7)
         
-        self.lbl_priceTitle.grid(column=1, row=0, pady=pady)
-        self.lbl_price.grid(column=1, row=1, pady=pady, sticky=tk.N) 
-        self.lbl_percentPrice.grid(column=1, row=2, pady=pady, sticky=tk.N) 
+        self.lbl_liveCircle.grid(column=0, row=7)
+        self.lbl_live.grid(column=1, row=7)
         
-        self.lbl_gainsLossesTitle.grid(column=1, row=3, pady=pady)
-        self.lbl_gainsLosses.grid(column=1, row=4, pady=pady, sticky=tk.N)
+        self.lbl_priceTitle.grid(column=3, row=0, pady=pady)
+        self.lbl_price.grid(column=3, row=1, pady=pady, sticky=tk.N) 
+        self.lbl_percentPrice.grid(column=3, row=2, pady=pady, sticky=tk.N) 
         
-        self.lbl_quantityTitle.grid(column=1, row=5, pady=pady)
-        self.lbl_quantity.grid(column=1, row=6, pady=pady, sticky=tk.N)
+        self.lbl_gainsLossesTitle.grid(column=3, row=3, pady=pady)
+        self.lbl_gainsLosses.grid(column=3, row=4, pady=pady, sticky=tk.N)
         
+        self.lbl_quantityTitle.grid(column=3, row=5, pady=pady)
+        self.lbl_quantity.grid(column=3, row=6, pady=pady, sticky=tk.N)
+    
+        self.columnconfigure(0, weight=0)
+        self.columnconfigure(1, weight=0)
+        self.columnconfigure(2, weight=1)
+        self.columnconfigure(3, weight=1)
     
     def update(self): 
-        #set start time of plot
-        self.timeStart = datetime.now(pytz.utc) - pd.DateOffset(days=self.timeFrame[0], hours=self.timeFrame[1], minutes=self.timeFrame[2])
         
-        #retrieve data from start point to present
-        df = self.tickerData.history(interval=self.interval, start=self.timeStart.strftime("%Y-%m-%d"))
-        dfView = df.loc[self.timeStart:,:]
+        df = self.tickerData.history(interval=self.interval, start=datetime.now().strftime('%Y-%m-%d'))
+        
+        if df.index[-1] < (datetime.now(pytz.utc) - pd.DateOffset(minutes=5)):
+            self.stopClock = True
+            dfView = df.iloc[::15,:] #takes every 15 minutes
+            
+            self.lbl_liveCircle.config(fg='grey')
+            self.live.set('A.H.')
+        
+        else:
+            #set start time of plot
+            self.timeStart = datetime.now(pytz.utc) - pd.DateOffset(days=self.timeFrame[0], hours=self.timeFrame[1], minutes=self.timeFrame[2])
+            
+            #retrieve data from start point to present
+            dfView = df.loc[self.timeStart:,:]
+            
+            self.lbl_liveCircle.config(fg='red')
+            self.live.set('Live')
         
         currentPrice = df.iloc[-1]['Open']
         startPrice = df.iloc[0]['Open']
@@ -322,11 +354,15 @@ class stockFrame(tk.Frame):
         self.canvas.draw()
         
         
+        
+        
     def clock(self):
         #update with the given interval
         self.update()
         wait = self.intervalDict[self.interval]
-        self.after(wait, self.clock) #run itself after 1 minute    
+        
+        if not self.stopClock:    
+            self.after(wait, self.clock) #run itself after 1 minute    
  
         
  
