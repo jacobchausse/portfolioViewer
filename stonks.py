@@ -6,19 +6,32 @@ from tkinter import ttk
 import numpy as np
 import pytz
 
+
+from tkinter import messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
 
 # TODO if After hours show whole day 
 # TODO click on frame goes enlarged view 
 
-global backgroundColor, textColor, font, fontSize, highlightColor
+global backgroundColor, textColor, font, fontSize, highlightColor, frameHeight,  frameWidth
+
+frameSize = 400
+
+widthToHeightRatio = 5/4
+frameHeight = frameSize
+frameWidth = int(frameSize * widthToHeightRatio)
+graphSize = round(frameSize/160,1)
+
+
 backgroundColor = '#17202e'
 textColor = 'lightgrey'
 fontName = '3ds'
-fontSizeBig = '20'
-fontSizeSmall = '15'
+fontSizeBig = str(int(frameSize / 20))
+fontSizeSmall = str(int(frameSize / 30))
 highlightColor = 'lightslategrey'
+
+
 
 
 class stockWindow(tk.Tk):
@@ -28,20 +41,25 @@ class stockWindow(tk.Tk):
         
         self.title('Portfolio Viewer')
         self.configure(background=backgroundColor)
-        self.stocksContainer1 = stocksContainer(self)
+        self.stocksContainer = stocksContainer(self)
         self.btn_addStock = tk.Button(self, text='Add', command = self.addStockWindow, bg=backgroundColor, fg=textColor)
         self.btn_addStock.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)
         
         self.btn_addStock.grid(row=0, column=0, sticky='e')
-        self.stocksContainer1.grid(row=1,column=0,columnspan=2)
+        self.stocksContainer.grid(row=1,column=0,columnspan=2)
+        
+        self.bind('<Control_L>a', self.addStockWindow)
+        
+        self.iconbitmap('portfolioviewer.ico')
     
-    def addStockWindow(self):
+    
+    def addStockWindow(self, event=None):
         win = addStockWindow(self)
         self.eval(f'tk::PlaceWindow {str(win)} center')
         
         
 
-
+ 
 class addStockWindow(tk.Toplevel):
     def __init__(self, root):
         tk.Toplevel.__init__(self, root)
@@ -53,31 +71,34 @@ class addStockWindow(tk.Toplevel):
         
         self.ent_ticker = simpleEntryFrame(self, 'Ticker') 
         
+        
         self.btn_OK = tk.Button(self, text='OK', command = self.OK , bg=backgroundColor, fg=textColor)
         self.btn_cancel = tk.Button(self, text='Cancel', command = self.destroy, bg=backgroundColor, fg=textColor)
         
         self.btn_OK.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)
         self.btn_cancel.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)
         
-        
         self.ent_ticker.grid(row=0,column=0,columnspan=2)
         self.btn_OK.grid(row=1,column=0)
         self.btn_cancel.grid(row=1,column=1)
         
         self.bind('<Return>', self.OK)
+        self.bind('<Escape>', lambda event: self.destroy())
         
         self.transient(self.root)
         self.grab_set()
+        self.ent_ticker.ent.focus_set()
         
     
     def OK(self, event=None):
-        output = self.root.stocksContainer1.addStockFrame(self.ent_ticker.ent.get())
+        output = self.root.stocksContainer.addStockFrame(self.ent_ticker.ent.get().upper())
         
         if output == True:
             self.destroy()
         else:
-            print(output)
+            messagebox.showerror('Error', output)
             self.ent_ticker.replaceText('')
+
 
 
 
@@ -121,14 +142,14 @@ class simpleEntryFrame(tk.Frame):
 
 class stocksContainer(tk.Frame):
     def __init__(self, root):
-        tk.Frame.__init__(self, root)
-        self.configure(background=backgroundColor)
+        tk.Frame.__init__(self, root, height=frameHeight,  width=frameWidth)
+        self.configure(background=backgroundColor)        
         self.stockFrameList = []
         self.tickerList = []
         
         
     def addStockFrame(self, ticker):
-        validate = self.validateNewTicker(ticker)
+        validate = self.validateAddStock(ticker)
         if validate == True:
             self.stockFrameList.append(stockFrame(self, ticker))
             self.tickerList.append(ticker)
@@ -139,13 +160,26 @@ class stocksContainer(tk.Frame):
         
         
     def removeStockFrame(self, ticker):
-        index = self.tickerList.index(ticker)
-        self.tickerList.pop(index)
-        self.stockFrameList.pop(index)
-        self.updateLayout()
+        validate = self.validateRemoveStock(ticker)
+        if validate == True:
+            index = self.tickerList.index(ticker)
+            self.tickerList.pop(index)
+            self.stockFrameList.pop(index)
+            self.updateLayout()
+        
+        return validate
         
     
-    def validateNewTicker(self, ticker):
+    def validateRemoveStock(self, ticker):
+        try:
+            self.tickerList.index(ticker)
+        except:
+            return 'Ticker is Not in the List'
+        else:
+            return True
+        
+    
+    def validateAddStock(self, ticker):
         try:
             yf.Ticker(ticker).info
         except: 
@@ -189,13 +223,14 @@ class stockFrame(tk.Frame):
         self.tickerData = yf.Ticker(ticker)
         
         #Stock title
-        self.lbl_title = tk.Label(self, text = str(ticker) + ' - ' + self.tickerData.info['shortName'], bg=backgroundColor, fg='white')
+        self.lbl_title = tk.Label(self, text = str(ticker) , bg=backgroundColor, fg='white') #+ ' - ' + self.tickerData.info['shortName']
         self.lbl_title.config(font=(fontName, fontSizeBig, 'bold'))
         
         #Live indicator
         self.live = tk.StringVar()
-        self.lbl_liveCircle = tk.Label(self, text = u'\u2B24', bg=backgroundColor)
-        self.lbl_live = tk.Label(self, textvariable = self.live, bg=backgroundColor, fg=textColor)
+        self.lbl_liveCircle = tk.Label(self, text = '      ' + u'\u2B24', bg=backgroundColor)
+        self.lbl_live = tk.Label(self, textvariable = self.live, bg=backgroundColor, fg=highlightColor)
+        self.lbl_liveCircle.config(font=(fontName, fontSizeSmall, 'bold'))
         self.lbl_live.config(font=(fontName, fontSizeSmall, 'bold'))
         
         #price
@@ -207,7 +242,7 @@ class stockFrame(tk.Frame):
         self.lbl_price.config(font=(fontName, fontSizeBig, 'bold'))
         
         self.percentPrice = tk.StringVar()
-        self.lbl_percentPrice = tk.Label(self, textvariable=self.percentPrice, bg=backgroundColor)
+        self.lbl_percentPrice = tk.Label(self, textvariable=self.percentPrice, bg=backgroundColor, width=15)
         self.lbl_percentPrice.config(font=(fontName, fontSizeSmall, 'bold'))  
         
         #gains/losses
@@ -229,7 +264,7 @@ class stockFrame(tk.Frame):
         self.lbl_quantity.config(font=(fontName, fontSizeBig, 'bold'))
         
         #plot parameters
-        self.timeFrame = [0,1,0] #days, hours, minutes - default is 1 hour
+        self.timeFrame = [0,0,30] #days, hours, minutes - default is 1 hour
         self.interval = '1m'
         self.intervalDict = {'1m':60000, '5m':5*60000, '15m':15*60000 }
         
@@ -238,7 +273,7 @@ class stockFrame(tk.Frame):
         style1 = mpf.make_mpf_style(base_mpf_style='nightclouds', marketcolors=mc, figcolor=backgroundColor, facecolor=backgroundColor, gridcolor='slategray', gridstyle='--')
         
         #create figure and axes
-        self.fig = mpf.figure(figsize=(2.5,2.5), style=style1, tight_layout=True)
+        self.fig = mpf.figure(figsize=(4/5*graphSize,graphSize), style=style1, tight_layout=True)
         self.fig.subplots_adjust(hspace=0)
         
         self.axCandles, self.axVolume = self.fig.subplots(2,1, sharex=True, gridspec_kw={'hspace': 0,'height_ratios':[2,1]})
@@ -282,26 +317,27 @@ class stockFrame(tk.Frame):
     def setLayout(self):
         pady = 0
         
-        self.lbl_title.grid(column=2, columnspan=2, row=7)
-        self.canvas.get_tk_widget().grid(column=0, columnspan=3, row=0, rowspan=7)
+        self.lbl_title.grid(column=2, columnspan=2, row=6, sticky=tk.W, padx=(20,0))
+        self.canvas.get_tk_widget().grid(column=0, columnspan=3, row=0, rowspan=6)
         
-        self.lbl_liveCircle.grid(column=0, row=7)
-        self.lbl_live.grid(column=1, row=7)
+        self.lbl_liveCircle.grid(column=0, row=6)
+        self.lbl_live.grid(column=1, row=6)
         
-        self.lbl_priceTitle.grid(column=3, row=0, pady=pady)
-        self.lbl_price.grid(column=3, row=1, pady=pady, sticky=tk.N) 
-        self.lbl_percentPrice.grid(column=3, row=2, pady=pady, sticky=tk.N) 
+        #self.lbl_priceTitle.grid(column=3, row=0, pady=pady)
+        self.lbl_price.grid(column=3, row=0, pady=(5,0)) 
+        self.lbl_percentPrice.grid(column=3, row=1, pady=pady, sticky=tk.N) 
         
-        self.lbl_gainsLossesTitle.grid(column=3, row=3, pady=pady)
-        self.lbl_gainsLosses.grid(column=3, row=4, pady=pady, sticky=tk.N)
+        self.lbl_gainsLossesTitle.grid(column=3, row=2, pady=pady)
+        self.lbl_gainsLosses.grid(column=3, row=3, pady=pady, sticky=tk.N)
         
-        self.lbl_quantityTitle.grid(column=3, row=5, pady=pady)
-        self.lbl_quantity.grid(column=3, row=6, pady=pady, sticky=tk.N)
+        self.lbl_quantityTitle.grid(column=3, row=4, pady=pady)
+        self.lbl_quantity.grid(column=3, row=5, pady=pady, sticky=tk.N)
     
         self.columnconfigure(0, weight=0)
         self.columnconfigure(1, weight=0)
         self.columnconfigure(2, weight=1)
         self.columnconfigure(3, weight=1)
+        
     
     def update(self): 
         
@@ -354,8 +390,6 @@ class stockFrame(tk.Frame):
         self.canvas.draw()
         
         
-        
-        
     def clock(self):
         #update with the given interval
         self.update()
@@ -365,7 +399,7 @@ class stockFrame(tk.Frame):
             self.after(wait, self.clock) #run itself after 1 minute    
  
         
- 
+
 #https://tradingview.com/chart/?symbol=BB
 
     
