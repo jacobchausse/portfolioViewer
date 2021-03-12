@@ -16,8 +16,9 @@ from portfolioHandler import portfolio
 
 
 
-global backgroundColor, textColor, font, fontSize, highlightColor, frameHeight,  frameWidth
+global timeZone, backgroundColor, textColor, font, fontSize, highlightColor, frameHeight,  frameWidth
 
+timeZone = pytz.timezone('US/Eastern')
 frameSize = 400
 
 widthToHeightRatio = 5/4
@@ -118,6 +119,41 @@ class addStockWindow(tk.Toplevel):
         else:
             messagebox.showerror('Error', output)
             self.ent_ticker.replaceText('')
+
+
+
+
+
+class ToolTip(object):
+
+    def __init__(self, widget):
+        self.widget = widget
+        self.tipwindow = None
+        self.id = None
+        self.x = self.y = 0
+
+    def showtip(self, text):
+        "Display text in tooltip window"
+        self.text = text
+        if self.tipwindow or not self.text:
+            return
+        x, y, cx, cy = self.widget.bbox("insert")
+        x = x + self.widget.winfo_rootx() + 57
+        y = y + cy + self.widget.winfo_rooty() +27
+        self.tipwindow = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(1)
+        tw.wm_geometry("+%d+%d" % (x, y))
+        label = tk.Label(tw, text=self.text, justify=tk.LEFT,
+                      bg=backgroundColor, relief=tk.SOLID, borderwidth=1,
+                      font=("tahoma", "10", "normal"), fg=textColor)
+        label.pack(ipadx=1)
+
+    def hidetip(self):
+        tw = self.tipwindow
+        self.tipwindow = None
+        if tw:
+            tw.destroy()
+
 
 
 
@@ -228,7 +264,8 @@ class stocksContainer(tk.Frame):
             else:
                 continue
             break
- 
+
+
     
  
 
@@ -251,6 +288,12 @@ class stockFrame(tk.Frame):
         
         self.lbl_liveCircle = tk.Label(self, text = '      ' + u'\u2B24')
         self.lbl_live = tk.Label(self, textvariable = self.live)
+        
+        tiptext_live = 'A.H. (After Hours) or B.H. (Before Hours) displays data for the previous day \nLive displays updating data on a 30 min. interval'
+        
+        self.tip = ToolTip(self.lbl_live)
+        self.lbl_live.bind('<Button-1>', lambda event: self.tip.showtip(tiptext_live))
+        self.lbl_live.bind('<Leave>', lambda event: self.tip.hidetip())
         
         #price
         self.price = tk.StringVar()
@@ -313,6 +356,7 @@ class stockFrame(tk.Frame):
         self.configure(background=backgroundColor, relief = 'ridge', bd = 4)
         
         #configure label widgets
+        #TODO explain after/before hours graph behaviour (shows whole day) when click on the A.H./B.H. https://stackoverflow.com/questions/20399243/display-message-when-hovering-over-something-with-mouse-cursor-in-python
         self.lbl_title.config(font=(fontName, fontSizeBig, 'bold'), bg=backgroundColor, fg=textColor)
         
         self.lbl_liveCircle.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor)
@@ -371,10 +415,10 @@ class stockFrame(tk.Frame):
         
     
     def update(self): 
-        yesterday = (datetime.now()- pd.DateOffset(days=1)).strftime('%Y-%m-%d') 
-        today = datetime.now().strftime('%Y-%m-%d')
+        yesterday = (datetime.now(timeZone)- pd.DateOffset(days=1)).strftime('%Y-%m-%d') 
+        today = datetime.now(timeZone).strftime('%Y-%m-%d')
         
-        now = datetime.now(pytz.utc)
+        now = datetime.now(timeZone)
         startOfTheDay = now.replace(hour=0, minute=0,second=0, microsecond=0)
         
         df = self.tickerData.history(interval=self.interval, start=yesterday)
@@ -398,7 +442,7 @@ class stockFrame(tk.Frame):
         
         else:
             #set start time of plot
-            self.timeStart = datetime.now(pytz.utc) - pd.DateOffset(days=self.timeFrame[0], hours=self.timeFrame[1], minutes=self.timeFrame[2])
+            self.timeStart = datetime.now(timeZone) - pd.DateOffset(days=self.timeFrame[0], hours=self.timeFrame[1], minutes=self.timeFrame[2])
             
             #retrieve data from start point to present
             dfView = df.loc[self.timeStart:,:]
