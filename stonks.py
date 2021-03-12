@@ -40,6 +40,7 @@ highlightColor = 'lightslategrey'
 class portfolioViewerApp(tk.Tk):
     def  __init__(self):
         tk.Tk.__init__(self)
+        self.iconbitmap('portfolioviewer.ico')
         self.eval('tk::PlaceWindow . center')
         
         self.title('Portfolio Viewer')
@@ -65,7 +66,6 @@ class portfolioViewerApp(tk.Tk):
         self.stocksContainer.grid(row=1,column=0,columnspan=2)
         
         self.bind('<Control_L>a', self.addStockWindow)
-        self.iconbitmap('portfolioviewer.ico')
     
     
     def addStockWindow(self, event=None):
@@ -79,6 +79,7 @@ class addStockWindow(tk.Toplevel):
     def __init__(self, root):
         tk.Toplevel.__init__(self, root)
         self.root = root
+        self.iconbitmap('portfolioviewer.ico')
         
         self.ent_ticker = simpleEntryFrame(self, 'Ticker') 
         self.btn_OK = tk.Button(self, text='OK', command = self.OK, bg=backgroundColor, fg=textColor)
@@ -123,7 +124,7 @@ class addStockWindow(tk.Toplevel):
 
 
 
-
+#taken as is from https://stackoverflow.com/questions/20399243/display-message-when-hovering-over-something-with-mouse-cursor-in-python
 class ToolTip(object):
 
     def __init__(self, widget):
@@ -330,7 +331,7 @@ class stockFrame(tk.Frame):
         
         #create canvas
         self.canvas = FigureCanvasTkAgg(self.fig, self)
-        self.canvas.get_tk_widget().bind("<Double-Button-1>", self.printhello)
+        self.canvas.get_tk_widget().bind("<Double-Button-1>", self.printhello) #TODO link this with enlarged view
         
         #configure all widgets and set layout
         self.configureFrame()
