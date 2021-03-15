@@ -10,16 +10,20 @@ import pytz
 from tkinter import messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
+import os
+
 
 #local files
 from portfolioHandler import portfolio
 
 
+#global parameters
+global timeZone, backgroundColor, textColor, font, fontSize, highlightColor, frameHeight,  frameWidth, currentDir
 
-global timeZone, backgroundColor, textColor, font, fontSize, highlightColor, frameHeight,  frameWidth
+currentDir = os.path.dirname(os.path.realpath(__file__))
 
 timeZone = pytz.timezone('US/Eastern')
-frameSize = 400
+frameSize = 500
 
 widthToHeightRatio = 5/4
 frameHeight = frameSize
@@ -35,12 +39,12 @@ fontSizeSmall = str(int(frameSize / 30))
 highlightColor = 'lightslategrey'
 
 
-#TODO contruct and update portfolio object
+#TODO construct and update portfolio object
 
 class portfolioViewerApp(tk.Tk):
     def  __init__(self):
         tk.Tk.__init__(self)
-        self.iconbitmap('portfolioviewer.ico')
+        self.iconbitmap(currentDir + '\\portfolioviewer.ico')
         self.eval('tk::PlaceWindow . center')
         
         self.title('Portfolio Viewer')
@@ -79,7 +83,7 @@ class addStockWindow(tk.Toplevel):
     def __init__(self, root):
         tk.Toplevel.__init__(self, root)
         self.root = root
-        self.iconbitmap('portfolioviewer.ico')
+        self.iconbitmap(currentDir + '\\portfolioviewer.ico')
         
         self.ent_ticker = simpleEntryFrame(self, 'Ticker') 
         self.btn_OK = tk.Button(self, text='OK', command = self.OK, bg=backgroundColor, fg=textColor)
@@ -125,7 +129,7 @@ class addStockWindow(tk.Toplevel):
 
 
 #taken as is from https://stackoverflow.com/questions/20399243/display-message-when-hovering-over-something-with-mouse-cursor-in-python
-class ToolTip(object):
+class ToolTip():
 
     def __init__(self, widget):
         self.widget = widget
