@@ -42,13 +42,13 @@ class portfolio():
     
     def savePortfolio(self,stock):
 
-        with open("C:/Users/Nick/Desktop/test.portfolio", "w") as portfolio:
-            portfolio.write("aapl,10,120")
-        with open(saveName+'.portfolio', "w") as portfolio:
+        with open(fileName+'.portfolio', "w") as portfolio:
             # Get all stock objects
             # 
-            for stock in objectContainer:
-                portfolio.write(stock[0] + ","+ stock[1] + "," + stock[2] +"\n")
+            for stock in self.root.stocksContainer.stockList[:-1]:
+                portfolio.write(stock.ticker + ","+ str(stock.price) + "," + str(stock.quantity) +"\n")
+            portfolio.write(self.root.stocksContainer.stockList[-1](stock.ticker + ","+ str(stock.price) + "," + str(stock.quantity) +"\n"))
+            
 
         #saves the object to file, use the portfolio name
         pass
@@ -73,3 +73,4 @@ class stock():
         
         
 
+# app.stocksContainer --> stock objects --> attributes 
