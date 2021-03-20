@@ -102,7 +102,7 @@ class savePortfolioWindow(tk.Toplevel):
         
         self.configureWindow()
         self.setLayout()
-        self.transient(self.root)
+        self.transient(self.root) 
         self.grab_set()
         self.ent_name.ent.focus_set()
         
@@ -130,12 +130,17 @@ class savePortfolioWindow(tk.Toplevel):
         #TODO check if there is at least 1 stock
         #TODO add functionality
 
-        fileName = self.ent_name.get()
-        print(fileName)
-        pass
+        fileName = self.ent_name.ent.get()
 
+        with open(currentDir + '\\saves\\' + fileName + '.portfolio', "w") as portfolio:
+            # Get all stock objects
+            for stock in self.root.stocksContainer.stockList[:-1]:
+                portfolio.write(stock.ticker + ","+ str(stock.buyPrice) + "," + str(stock.quantity) +"\n")
+            
+            stock = self.root.stocksContainer.stockList[-1]
+            portfolio.write((stock.ticker + ","+ str(stock.buyPrice) + "," + str(stock.quantity) +"\n"))
 
-
+        self.destroy()
 
         
 class loadPortfolioWindow(tk.Toplevel):
@@ -145,7 +150,6 @@ class loadPortfolioWindow(tk.Toplevel):
         self.iconbitmap(currentDir + '\\portfolioviewer.ico')
 
         self.portfolios = None
-        self.portfolioPaths = None
         self.var_portfolio = tk.StringVar()
 
         self.findPortfolios()
@@ -167,7 +171,6 @@ class loadPortfolioWindow(tk.Toplevel):
             pass
         else:
             self.portfolios = [os.path.splitext(path)[0] for path in pathList]
-            self.portfolioPaths = dict(zip(self.portfolios, pathList))
 
         
     def configureWindow(self):
@@ -189,6 +192,8 @@ class loadPortfolioWindow(tk.Toplevel):
  
     
     def OK(self, event=None):
+        #TODO flush current portfolio
+
         path = currentDir + '\\saves\\' + self.var_portfolio.get() + '.portfolio'
         with open(path, 'r') as portfolio:
             for line in portfolio:
