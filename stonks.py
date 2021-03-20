@@ -39,11 +39,16 @@ fontSizeBig = str(int(frameSize / 20))
 fontSizeSmall = str(int(frameSize / 30))
 
 
+#TODO "there are unsaved changes" flag set to True or False
+#TODO config file with all startup settings
 #TODO construct and update portfolio object
 
 class portfolioViewerApp(tk.Tk):
     def  __init__(self):
         tk.Tk.__init__(self)
+
+        #TODO if portfolio is loaded, display name
+
         self.iconbitmap(currentDir + '\\portfolioviewer.ico')
         self.eval('tk::PlaceWindow . center')
         
@@ -56,7 +61,7 @@ class portfolioViewerApp(tk.Tk):
         self.menuBar = tk.Menu(self)
         self.configure(menu=self.menuBar)
         self.mnu_portfolio = tk.Menu(self.menuBar, tearoff=0)
-        self.mnu_portfolio.add_command(label="Open - Ctrl+O", command=self.addStockWindow) # TODO make it work correctly
+        self.mnu_portfolio.add_command(label="Open - Ctrl+O", command=self.loadPortfolioWindow)
         self.mnu_portfolio.add_command(label="New - Ctrl+N", command=self.addStockWindow) # TODO make it work correctly
         self.mnu_portfolio.add_command(label="Save - Ctrl+S", command=self.addStockWindow) # TODO make it work correctly
         self.mnu_portfolio.add_separator()
@@ -65,15 +70,78 @@ class portfolioViewerApp(tk.Tk):
         self.menuBar.add_cascade(label="Portfolio", menu=self.mnu_portfolio)
         
         self.bind('<Control_L>a', self.addStockWindow)
-    
-    
+        self.bind('<Control_L>o', self.loadPortfolioWindow)
+
+
+    def loadPortfolioWindow(self, event=None):
+        win = loadPortfolioWindow(self)
+        self.eval(f'tk::PlaceWindow {str(win)} center')
+
+
     def addStockWindow(self, event=None):
         win = addStockWindow(self)
         self.eval(f'tk::PlaceWindow {str(win)} center')
-        
-        
 
+
+
+        
+class loadPortfolioWindow(tk.Toplevel):
+    def __init__(self, root):
+        tk.Toplevel.__init__(self, root)
+        self.root = root
+        self.iconbitmap(currentDir + '\\portfolioviewer.ico')
+
+        self.portfolios = None
+        self.portfolioPaths = None
+        self.var_portfolio = tk.StringVar()
+
+        self.findPortfolios()
+        self.opt_portfolios = tk.OptionMenu(self, self.var_portfolio, *self.portfolios)
+
+        self.btn_OK = tk.Button(self, text='OK', command = self.OK, bg=backgroundColor, fg=textColor)
+        self.btn_cancel = tk.Button(self, text='Cancel', command = self.destroy, bg=backgroundColor, fg=textColor)
+        
+        self.configureWindow()
+        self.setLayout()
+        self.transient(self.root)
+        self.grab_set()
+
+
+
+    def findPortfolios(self):
+        pathList = os.listdir(currentDir + '\\saves\\')
+        if len(pathList) == 0:
+            #TODO throw error
+            pass
+        else:
+            self.portfolios = [os.path.splitext(path)[0] for path in pathList]
+            self.portfolioPaths = dict(zip(self.portfolios, pathList))
+
+        
+    def configureWindow(self):
+        self.configure(background=backgroundColor)
+        self.title('Load Portfolio')
+        
+        self.opt_portfolios.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)
+        self.btn_OK.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)
+        self.btn_cancel.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)        
  
+        self.bind('<Return>', self.OK)
+        self.bind('<Escape>', lambda event: self.destroy()) 
+        
+    
+    def setLayout(self):
+        self.opt_portfolios.grid(row=0,column=0, columnspan=2)
+        self.btn_OK.grid(row=1,column=0)
+        self.btn_cancel.grid(row=1,column=1)
+ 
+    
+    def OK(self, event=None):        
+        #TODO add functionality
+        self.destroy()
+
+
+
 class addStockWindow(tk.Toplevel):
     def __init__(self, root):
         tk.Toplevel.__init__(self, root)
@@ -89,9 +157,6 @@ class addStockWindow(tk.Toplevel):
         self.transient(self.root)
         self.grab_set()
         self.ent_ticker.ent.focus_set()
-        
-        #TODO add entry for quantity
-        #TODO add entry for buy price
         
         
     def configureWindow(self):
@@ -112,7 +177,7 @@ class addStockWindow(tk.Toplevel):
  
     
     def OK(self, event=None):        
-        output = self.root.stocksContainer.addStockFrame(self.ent_ticker.ent.get().upper())
+        output = self.root.stocksContainer.addstock(self.ent_ticker.ent.get().upper())
         
         if output == True:
             self.destroy()
@@ -200,27 +265,32 @@ class stocksContainer(tk.Frame):
     def __init__(self, root):
         tk.Frame.__init__(self, root, height=frameHeight,  width=frameWidth)
         self.configure(background=backgroundColor)        
-        self.stockFrameList = []
+        self.stockList = []
         self.tickerList = []
+
+
+    def writeOut():
+        #TODO function that saves portfolio to file
+        pass
         
         
-    def addStockFrame(self, ticker):
+    def addstock(self, ticker):
         validate = self.validateAddStock(ticker)
         if validate == True:
-            self.stockFrameList.append(stockFrame(self, ticker))
+            self.stockList.append(stock(self, ticker))
             self.tickerList.append(ticker)
-            self.stockFrameList[-1].clock()
+            self.stockList[-1].clock()
             self.updateLayout()
 
         return validate
         
         
-    def removeStockFrame(self, ticker):
+    def removestock(self, ticker):
         validate = self.validateRemoveStock(ticker)
         if validate == True:
             index = self.tickerList.index(ticker)
             self.tickerList.pop(index)
-            self.stockFrameList.pop(index)
+            self.stockList.pop(index)
             self.updateLayout()
         
         return validate
@@ -252,25 +322,27 @@ class stocksContainer(tk.Frame):
         
             
     def updateLayout(self):
-        gridSize = int(np.ceil(np.sqrt(len(self.stockFrameList))))
+        gridSize = int(np.ceil(np.sqrt(len(self.stockList))))
         
         counter=0
         for i in range(gridSize):
             for j in range(gridSize):
                 counter+=1
-                if  counter > len(self.stockFrameList):
+                if  counter > len(self.stockList):
                     break
-                self.stockFrameList[counter-1].grid(row=i, column=j)
+                self.stockList[counter-1].grid(row=i, column=j)
             else:
                 continue
             break
 
   
 
-class stockFrame(tk.Frame):
+class stock(tk.Frame):
     def  __init__(self, root, ticker):
         tk.Frame.__init__(self, root)   
         
+        #TODO add BUY and SELL buttons
+
         #define root
         self.root=root
         
@@ -282,10 +354,10 @@ class stockFrame(tk.Frame):
         self.lbl_title = tk.Label(self, text = str(ticker)) #+ ' - ' + self.tickerData.info['shortName']
         
         #Live indicator
-        self.live = tk.StringVar()
+        self.var_live = tk.StringVar()
         
         self.lbl_liveCircle = tk.Label(self, text = '      ' + u'\u2B24')
-        self.lbl_live = tk.Label(self, textvariable = self.live)
+        self.lbl_live = tk.Label(self, textvariable = self.var_live)
         
         tiptext_live = 'A.H. (After Hours) or B.H. (Before Hours) displays data for the previous day \nLive displays updating data on a 30 min. interval'
         
@@ -294,28 +366,28 @@ class stockFrame(tk.Frame):
         self.lbl_live.bind('<Leave>', lambda event: self.tip.hidetip())
         
         #price
-        self.price = tk.StringVar()
-        self.percentPrice = tk.StringVar()
+        self.var_price = tk.StringVar()
+        self.var_pricePercent = tk.StringVar()
         
-        self.lbl_price = tk.Label(self, textvariable=self.price)
-        self.lbl_percentPrice = tk.Label(self, textvariable=self.percentPrice, width=15)
+        self.lbl_price = tk.Label(self, textvariable=self.var_price)
+        self.lbl_percentPrice = tk.Label(self, textvariable=self.var_pricePercent, width=15)
         
         #gains/losses
-        self.gainsLosses = tk.StringVar()
+        self.var_gainsLosses = tk.StringVar()
         
         self.lbl_gainsLossesTitle = tk.Label(self, text = 'Net Gain')
-        self.lbl_gainsLosses = tk.Label(self, textvariable=self.gainsLosses)
+        self.lbl_gainsLosses = tk.Label(self, textvariable=self.var_gainsLosses)
         
         #quantity
-        self.quantity = tk.StringVar()
-        
+        self.var_quantity = tk.StringVar()
+
         self.lbl_quantityTitle = tk.Label(self, text = 'Quantity')
-        self.lbl_quantity = tk.Label(self, textvariable=self.quantity)
+        self.lbl_quantity = tk.Label(self, textvariable=self.var_quantity)
         
         #plot parameters
-        self.timeFrame = [0,0,30] #days, hours, minutes - default is 1 hour
+        self.timeFrame = [0,0,30] #days, hours, minutes - default is 30 mins
         self.interval = '1m'
-        self.intervalDict = {'1m':60000, '5m':5*60000, '15m':15*60000 }
+        self.intervalDict = {'1m':60000}
         
         #plot style
         mc = mpf.make_marketcolors(base_mpf_style='yahoo', wick='inherit')
@@ -436,11 +508,11 @@ class stockFrame(tk.Frame):
             
             if df.index[-1] < startOfTheDay: #before hours
                 dfView = df.loc[:prevDay,:] 
-                self.live.set('B.H.')
+                self.var_live.set('B.H.')
                 
             else: #after hours
                 dfView = df.loc[today:,:] 
-                self.live.set('A.H.')
+                self.var_live.set('A.H.')
             
             dfView = dfView.iloc[::15,:] #takes every 15 minutes for clarity
             
@@ -455,7 +527,7 @@ class stockFrame(tk.Frame):
             dfView = df.loc[self.timeStart:,:]
             
             self.lbl_liveCircle.config(fg='red')
-            self.live.set('Live')
+            self.var_live.set('Live')
         
         currentPrice = df.iloc[-1]['Open']
         startPrice = priceEndPrevDay['Open']
@@ -471,8 +543,8 @@ class stockFrame(tk.Frame):
             self.lbl_percentPrice.config(fg='firebrick1')
             updown=u'\u23F7'
             
-        self.price.set('$' + str(round(currentPrice,2)))
-        self.percentPrice.set(updown + '$' + str(round(abs(diffPrice),2)) + '(' + str(round(abs(percentDiff),2)) + '%)')
+        self.var_price.set('$' + str(round(currentPrice,2)))
+        self.var_pricePercent.set(updown + '$' + str(round(abs(diffPrice),2)) + '(' + str(round(abs(percentDiff),2)) + '%)')
         
         #clear axes
         self.axCandles.clear()
