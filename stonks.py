@@ -135,10 +135,10 @@ class savePortfolioWindow(tk.Toplevel):
         with open(currentDir + '\\saves\\' + fileName + '.portfolio', "w") as portfolio:
             # Get all stock objects
             for stock in self.root.stocksContainer.stockList[:-1]:
-                portfolio.write(stock.ticker + ","+ str(stock.buyPrice) + "," + str(stock.quantity) +"\n")
+                portfolio.write(stock.ticker + "," + str(stock.quantity) + "," + str(stock.buyPrice) +"\n")
             
             stock = self.root.stocksContainer.stockList[-1]
-            portfolio.write((stock.ticker + ","+ str(stock.buyPrice) + "," + str(stock.quantity) +"\n"))
+            portfolio.write((stock.ticker + "," + str(stock.quantity) + "," + str(stock.buyPrice)))
 
         self.destroy()
 
