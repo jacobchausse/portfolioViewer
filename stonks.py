@@ -51,6 +51,7 @@ class portfolioViewerApp(tk.Tk):
         self.configure(background=backgroundColor)
         
         self.stocksContainer = stocksContainer(self)
+        self.stocksContainer.grid(row=1,column=0,columnspan=2)
         
         self.menuBar = tk.Menu(self)
         self.configure(menu=self.menuBar)
@@ -62,12 +63,6 @@ class portfolioViewerApp(tk.Tk):
         self.mnu_portfolio.add_command(label="Add Stock - Ctrl+A", command=self.addStockWindow) 
         self.mnu_portfolio.add_command(label="Remove Stock - Ctrl+R", command=self.addStockWindow) # TODO make it work correctly
         self.menuBar.add_cascade(label="Portfolio", menu=self.mnu_portfolio)
-        
-        #self.btn_addStock = tk.Button(self, text='Add', command = self.addStockWindow, bg=backgroundColor, fg=textColor)
-        #self.btn_addStock.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)
-        
-        #self.btn_addStock.grid(row=0, column=0, sticky='e')
-        self.stocksContainer.grid(row=1,column=0,columnspan=2)
         
         self.bind('<Control_L>a', self.addStockWindow)
     
