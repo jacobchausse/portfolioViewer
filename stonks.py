@@ -30,13 +30,13 @@ frameHeight = frameSize
 frameWidth = int(frameSize * widthToHeightRatio)
 graphSize = round(frameSize/160,1)
 
-
 backgroundColor = '#17202e'
 textColor = 'lightgrey'
+highlightColor = 'lightslategrey'
+
 fontName = '3ds'
 fontSizeBig = str(int(frameSize / 20))
 fontSizeSmall = str(int(frameSize / 30))
-highlightColor = 'lightslategrey'
 
 
 #TODO construct and update portfolio object
@@ -63,10 +63,10 @@ class portfolioViewerApp(tk.Tk):
         self.mnu_portfolio.add_command(label="Remove Stock - Ctrl+R", command=self.addStockWindow) # TODO make it work correctly
         self.menuBar.add_cascade(label="Portfolio", menu=self.mnu_portfolio)
         
-        self.btn_addStock = tk.Button(self, text='Add', command = self.addStockWindow, bg=backgroundColor, fg=textColor)
-        self.btn_addStock.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)
+        #self.btn_addStock = tk.Button(self, text='Add', command = self.addStockWindow, bg=backgroundColor, fg=textColor)
+        #self.btn_addStock.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)
         
-        self.btn_addStock.grid(row=0, column=0, sticky='e')
+        #self.btn_addStock.grid(row=0, column=0, sticky='e')
         self.stocksContainer.grid(row=1,column=0,columnspan=2)
         
         self.bind('<Control_L>a', self.addStockWindow)
@@ -270,9 +270,7 @@ class stocksContainer(tk.Frame):
                 continue
             break
 
-
-    
- 
+  
 
 class stockFrame(tk.Frame):
     def  __init__(self, root, ticker):
@@ -420,20 +418,29 @@ class stockFrame(tk.Frame):
         
     
     def update(self): 
-        yesterday = (datetime.now(timeZone)- pd.DateOffset(days=1)).strftime('%Y-%m-%d') 
+        
+        weekday = datetime.today().weekday() #weekday index
+        
+        if weekday == 0: #if it is monday
+            prevDay = (datetime.now(timeZone)- pd.DateOffset(days=3)).strftime('%Y-%m-%d')      
+        elif weekday == 6: #if sunday
+            prevDay = (datetime.now(timeZone)- pd.DateOffset(days=2)).strftime('%Y-%m-%d')
+        else: #if any other day
+            prevDay = (datetime.now(timeZone)- pd.DateOffset(days=1)).strftime('%Y-%m-%d') 
+        
         today = datetime.now(timeZone).strftime('%Y-%m-%d')
         
         now = datetime.now(timeZone)
         startOfTheDay = now.replace(hour=0, minute=0,second=0, microsecond=0)
         
-        df = self.tickerData.history(interval=self.interval, start=yesterday)
-        priceEndYesterday = df.loc[:yesterday,:].iloc[-1] #used to calculate % change
+        df = self.tickerData.history(interval=self.interval, start=prevDay)
+        priceEndPrevDay = df.loc[:prevDay,:].iloc[-1] #used to calculate % change
         
         if df.index[-1] < (now - pd.DateOffset(minutes=5)):
             self.stopClock = True
             
             if df.index[-1] < startOfTheDay: #before hours
-                dfView = df.loc[:yesterday,:] 
+                dfView = df.loc[:prevDay,:] 
                 self.live.set('B.H.')
                 
             else: #after hours
@@ -456,7 +463,7 @@ class stockFrame(tk.Frame):
             self.live.set('Live')
         
         currentPrice = df.iloc[-1]['Open']
-        startPrice = priceEndYesterday['Open']
+        startPrice = priceEndPrevDay['Open']
         diffPrice = currentPrice-startPrice
         percentDiff = diffPrice / currentPrice * 100
         
