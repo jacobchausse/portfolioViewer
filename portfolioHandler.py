@@ -20,13 +20,16 @@ class portfolio():
 
     def loadPortfolio(self, portfolioName):
 
-        with open("C:/Users/Nick/Desktop/test.portfolio","r") as portfolio1:
-            for line in portfolio1:
-                print(line)
-
-        with open(portfolioName, 'r') as portfolio:
+        with open(path, 'r') as portfolio:
             for line in portfolio:
                 ticker, quantity, price = (line.split(","))
+                output = self.root.stocksContainer.addstock(ticker, quantity, price)
+
+                if output != True:
+                    print("ur big stinky")
+                    #TODO think about mistakes in life
+                    break
+
                 #Call function to create the object
             
             
