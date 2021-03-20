@@ -188,9 +188,20 @@ class loadPortfolioWindow(tk.Toplevel):
         self.btn_cancel.grid(row=1,column=1)
  
     
-    def OK(self, event=None):        
-        #TODO add functionality
+    def OK(self, event=None):
+        path = currentDir + '\\saves\\' + self.var_portfolio.get() + '.portfolio'
+        with open(path, 'r') as portfolio:
+            for line in portfolio:
+                ticker, quantity, price = (line.split(","))
+                output = self.root.stocksContainer.addstock(ticker.upper(), int(quantity), float(price))
+
+                if output != True:
+                    print("ur big stinky")
+                    #TODO think about mistakes in life
+                    break
+                
         self.destroy()
+
 
 
 
