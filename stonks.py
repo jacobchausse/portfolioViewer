@@ -63,7 +63,7 @@ class portfolioViewerApp(tk.Tk):
         self.mnu_portfolio = tk.Menu(self.menuBar, tearoff=0)
         self.mnu_portfolio.add_command(label="Open - Ctrl+O", command=self.loadPortfolioWindow)
         self.mnu_portfolio.add_command(label="New - Ctrl+N", command=self.addStockWindow) # TODO make it work correctly
-        self.mnu_portfolio.add_command(label="Save - Ctrl+S", command=self.addStockWindow) # TODO make it work correctly
+        self.mnu_portfolio.add_command(label="Save - Ctrl+S", command=self.savePortfolioWindow)
         self.mnu_portfolio.add_separator()
         self.mnu_portfolio.add_command(label="Add Stock - Ctrl+A", command=self.addStockWindow) 
         self.mnu_portfolio.add_command(label="Remove Stock - Ctrl+R", command=self.addStockWindow) # TODO make it work correctly
@@ -71,6 +71,12 @@ class portfolioViewerApp(tk.Tk):
         
         self.bind('<Control_L>a', self.addStockWindow)
         self.bind('<Control_L>o', self.loadPortfolioWindow)
+        self.bind('<Control_L>s', self.savePortfolioWindow)
+
+
+    def savePortfolioWindow(self, event=None):
+        win = savePortfolioWindow(self)
+        self.eval(f'tk::PlaceWindow {str(win)} center')
 
 
     def loadPortfolioWindow(self, event=None):
@@ -81,6 +87,53 @@ class portfolioViewerApp(tk.Tk):
     def addStockWindow(self, event=None):
         win = addStockWindow(self)
         self.eval(f'tk::PlaceWindow {str(win)} center')
+
+
+
+class savePortfolioWindow(tk.Toplevel):
+    def __init__(self, root):
+        tk.Toplevel.__init__(self, root)
+        self.root = root
+        self.iconbitmap(currentDir + '\\portfolioviewer.ico')
+        
+        self.ent_name = simpleEntryFrame(self, 'Portfolio Name') 
+        self.btn_OK = tk.Button(self, text='OK', command = self.OK, bg=backgroundColor, fg=textColor)
+        self.btn_cancel = tk.Button(self, text='Cancel', command = self.destroy, bg=backgroundColor, fg=textColor)
+        
+        self.configureWindow()
+        self.setLayout()
+        self.transient(self.root)
+        self.grab_set()
+        self.ent_name.ent.focus_set()
+        
+        
+    def configureWindow(self):
+        self.configure(background=backgroundColor)
+        self.title('Add Stock')
+        
+        self.btn_OK.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)
+        self.btn_cancel.config(font=(fontName, fontSizeSmall, 'bold'), bg=backgroundColor, fg=textColor)        
+ 
+        self.bind('<Return>', self.OK)
+        self.bind('<Escape>', lambda event: self.destroy()) 
+        
+    
+    def setLayout(self):
+        self.ent_name.grid(row=0,column=0,columnspan=2)
+        self.btn_OK.grid(row=1,column=0)
+        self.btn_cancel.grid(row=1,column=1)
+
+    
+    def OK(self, event=None):  
+        #TODO check if the name is good, only letters numbers - _  
+        #TODO catch os error
+        #TODO check if there is at least 1 stock
+        #TODO add functionality
+
+        fileName = self.ent_name.get()
+        print(fileName)
+        pass
+
 
 
 
@@ -105,7 +158,6 @@ class loadPortfolioWindow(tk.Toplevel):
         self.setLayout()
         self.transient(self.root)
         self.grab_set()
-
 
 
     def findPortfolios(self):
@@ -267,17 +319,12 @@ class stocksContainer(tk.Frame):
         self.configure(background=backgroundColor)        
         self.stockList = []
         self.tickerList = []
-
-
-    def writeOut():
-        #TODO function that saves portfolio to file
-        pass
         
         
-    def addstock(self, ticker):
+    def addstock(self, ticker, quantity=0, price=0):
         validate = self.validateAddStock(ticker)
         if validate == True:
-            self.stockList.append(stock(self, ticker))
+            self.stockList.append(stock(self, ticker, quantity, price))
             self.tickerList.append(ticker)
             self.stockList[-1].clock()
             self.updateLayout()
@@ -338,7 +385,7 @@ class stocksContainer(tk.Frame):
   
 
 class stock(tk.Frame):
-    def  __init__(self, root, ticker):
+    def  __init__(self, root, ticker, quantity, price):
         tk.Frame.__init__(self, root)   
         
         #TODO add BUY and SELL buttons
@@ -348,6 +395,9 @@ class stock(tk.Frame):
         
         #ticker info
         self.ticker = ticker
+        self.quantity = quantity
+        self.buyPrice = price
+
         self.tickerData = yf.Ticker(ticker)
         
         #Stock title
@@ -380,6 +430,7 @@ class stock(tk.Frame):
         
         #quantity
         self.var_quantity = tk.StringVar()
+        self.var_quantity.set(quantity)
 
         self.lbl_quantityTitle = tk.Label(self, text = 'Quantity')
         self.lbl_quantity = tk.Label(self, textvariable=self.var_quantity)
@@ -546,6 +597,11 @@ class stock(tk.Frame):
         self.var_price.set('$' + str(round(currentPrice,2)))
         self.var_pricePercent.set(updown + '$' + str(round(abs(diffPrice),2)) + '(' + str(round(abs(percentDiff),2)) + '%)')
         
+        #set gainsLosses
+        if self.quantity != 0:
+            gainsLosses = round(self.quantity*(currentPrice - self.buyPrice), 2)
+            self.var_gainsLosses.set( str(gainsLosses) + '$' ) 
+
         #clear axes
         self.axCandles.clear()
         self.axVolume.clear()
