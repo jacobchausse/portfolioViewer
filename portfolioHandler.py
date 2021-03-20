@@ -2,7 +2,11 @@
 # Get stock quantity
 # Get stock purchase price
 # Determine if either Portfolio or watchlist
+import os.path
+from os import path
 
+
+portfolioPath = ""
 class portfolio():
     def __init__(self, name):
         self.tickerList = [] # List stock objects
@@ -14,7 +18,18 @@ class portfolio():
         #updates portfolio file (use savePortfolio)
         pass
 
-    def loadPortfolio(self, directory):
+    def loadPortfolio(self, portfolioName):
+
+        with open("C:/Users/Nick/Desktop/test.portfolio","r") as portfolio1:
+            for line in portfolio1:
+                print(line)
+
+        with open(portfolioName, 'r') as portfolio:
+            for line in portfolio:
+                ticker, quantity, price = (line.split(","))
+                #Call function to create the object
+            
+            
         #populate portfolio list with stock objects from file
         pass
 
@@ -25,7 +40,16 @@ class portfolio():
         #updates portfolio file (use savePortfolio)
         pass
     
-    def savePortfolio(self):
+    def savePortfolio(self,stock):
+
+        with open("C:/Users/Nick/Desktop/test.portfolio", "w") as portfolio:
+            portfolio.write("aapl,10,120")
+        with open(saveName+'.portfolio', "w") as portfolio:
+            # Get all stock objects
+            # 
+            for stock in objectContainer:
+                portfolio.write(stock[0] + ","+ stock[1] + "," + stock[2] +"\n")
+
         #saves the object to file, use the portfolio name
         pass
 
