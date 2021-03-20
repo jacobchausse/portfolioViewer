@@ -1,4 +1,6 @@
 # Database text file
-.txt
-.bin
-.log
+*.txt
+*.bin
+*.log
+*.pyc
+__pycache__/
