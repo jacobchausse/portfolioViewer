@@ -145,6 +145,7 @@ class savePortfolioWindow(tk.Toplevel):
 
         with open(currentDir + '\\saves\\' + fileName + '.portfolio', "w") as portfolio:
             # Get all stock objects
+            portfolio.write(self.root.portfolioCurrency.get() + "\n")
             for stock in self.root.stocksContainer.stockList[:-1]:
                 portfolio.write(stock.ticker + "," + str(stock.quantity) + "," + str(stock.buyPrice) +"\n")
             
@@ -206,15 +207,21 @@ class loadPortfolioWindow(tk.Toplevel):
         #TODO flush current portfolio
 
         path = currentDir + '\\saves\\' + self.var_portfolio.get() + '.portfolio'
+        allLines = []
+
         with open(path, 'r') as portfolio:
             for line in portfolio:
-                ticker, quantity, price = (line.split(","))
-                output = self.root.stocksContainer.addstock(ticker.upper(), int(quantity), float(price), doValidate=False)
+                allLines.append(line)
 
-                if output != True:
-                    print("ur big stinky")
-                    #TODO think about mistakes in life
-                    break
+        self.root.portfolioCurrency.set(allLines[0].rstrip())
+        for line in allLines[1:]:        
+            ticker, quantity, price = (line.split(","))
+            output = self.root.stocksContainer.addstock(ticker.upper(), int(quantity), float(price), doValidate=False)
+
+            if output != True:
+                print("ur big stinky")
+                #TODO think about mistakes in life
+                break
                 
         self.destroy()
 
@@ -569,7 +576,7 @@ class stock(tk.Frame):
         
     
     def update(self):
-        
+
         if self.info['currency'] != self.root.root.portfolioCurrency.get():
             conversionFactor = CurrencyRates().get_rate(self.info['currency'],self.root.root.portfolioCurrency.get())
         else:
