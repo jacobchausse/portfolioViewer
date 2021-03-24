@@ -11,6 +11,7 @@ from tkinter import messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
 import os
+from forex_python.converter import CurrencyRates
 
 
 #local files
@@ -42,6 +43,10 @@ fontSizeSmall = str(int(frameSize / 30))
 #TODO "there are unsaved changes" flag set to True or False
 #TODO config file with all startup settings
 #TODO construct and update portfolio object
+#TODO change currency
+#TODO Lezajsk mode
+#TODO add refresh button to each stock frame that restarts the clock if A.H. or B.H.
+
 
 class portfolioViewerApp(tk.Tk):
     def  __init__(self):
@@ -55,6 +60,12 @@ class portfolioViewerApp(tk.Tk):
         self.title('Portfolio Viewer')
         self.configure(background=backgroundColor)
         
+        self.portfolioCurrency = tk.StringVar() 
+        self.portfolioCurrency.set('CAD')               #TODO make this changeable
+        self.lbl_currency = tk.Label(self, textvariable=self.portfolioCurrency)
+        self.lbl_currency.grid(row=0,column=0)
+        self.lbl_currency.config(font=(fontName, fontSizeBig, 'bold'), bg=backgroundColor, fg=textColor)  
+
         self.stocksContainer = stocksContainer(self)
         self.stocksContainer.grid(row=1,column=0,columnspan=2)
         
@@ -198,7 +209,7 @@ class loadPortfolioWindow(tk.Toplevel):
         with open(path, 'r') as portfolio:
             for line in portfolio:
                 ticker, quantity, price = (line.split(","))
-                output = self.root.stocksContainer.addstock(ticker.upper(), int(quantity), float(price))
+                output = self.root.stocksContainer.addstock(ticker.upper(), int(quantity), float(price), doValidate=False)
 
                 if output != True:
                     print("ur big stinky")
@@ -332,13 +343,18 @@ class simpleEntryFrame(tk.Frame):
 class stocksContainer(tk.Frame):
     def __init__(self, root):
         tk.Frame.__init__(self, root, height=frameHeight,  width=frameWidth)
+        self.root = root
         self.configure(background=backgroundColor)        
         self.stockList = []
         self.tickerList = []
         
         
-    def addstock(self, ticker, quantity=0, price=0):
-        validate = self.validateAddStock(ticker)
+    def addstock(self, ticker, quantity=0, price=0, currency='CAD', doValidate=True):
+        if doValidate:
+            validate = self.validateAddStock(ticker)
+        else:
+            validate=True
+        
         if validate == True:
             self.stockList.append(stock(self, ticker, quantity, price))
             self.tickerList.append(ticker)
@@ -372,7 +388,7 @@ class stocksContainer(tk.Frame):
     def validateAddStock(self, ticker):
         #TODO change validation when working with portfolio object
         try:
-            yf.Ticker(ticker).info
+            yf.Ticker(ticker).financials #naive check
         except: 
             return 'Ticker Does Not Exist'
         
@@ -415,7 +431,8 @@ class stock(tk.Frame):
         self.buyPrice = price
 
         self.tickerData = yf.Ticker(ticker)
-        
+        self.info = self.tickerData.info
+
         #Stock title
         self.lbl_title = tk.Label(self, text = str(ticker)) #+ ' - ' + self.tickerData.info['shortName']
         
@@ -551,8 +568,14 @@ class stock(tk.Frame):
         self.columnconfigure(3, weight=1)
         
     
-    def update(self): 
+    def update(self):
         
+        if self.info['currency'] != self.root.root.portfolioCurrency.get():
+            conversionFactor = CurrencyRates().get_rate(self.info['currency'],self.root.root.portfolioCurrency.get())
+        else:
+            conversionFactor=1
+
+
         weekday = datetime.today().weekday() #weekday index
         
         if weekday == 0: #if it is monday
@@ -610,12 +633,12 @@ class stock(tk.Frame):
             self.lbl_percentPrice.config(fg='firebrick1')
             updown=u'\u23F7'
             
-        self.var_price.set('$' + str(round(currentPrice,2)))
-        self.var_pricePercent.set(updown + '$' + str(round(abs(diffPrice),2)) + '(' + str(round(abs(percentDiff),2)) + '%)')
+        self.var_price.set('$' + str(round(currentPrice * conversionFactor,2)))
+        self.var_pricePercent.set(updown + '$' + str(round(abs(diffPrice * conversionFactor),2)) + '(' + str(round(abs(percentDiff),2)) + '%)')
         
         #set gainsLosses
         if self.quantity != 0:
-            gainsLosses = round(self.quantity*(currentPrice - self.buyPrice), 2)
+            gainsLosses = round(self.quantity*(currentPrice * conversionFactor - self.buyPrice), 2)
             self.var_gainsLosses.set( str(gainsLosses) + '$' ) 
 
         #clear axes
