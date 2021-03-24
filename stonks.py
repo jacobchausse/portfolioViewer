@@ -205,6 +205,10 @@ class loadPortfolioWindow(tk.Toplevel):
     
     def OK(self, event=None):
         #TODO flush current portfolio
+        
+        for stock in self.root.stocksContainer.stockList:
+            stock.destroy()
+        self.root.stocksContainer.stockList=[]    
 
         path = currentDir + '\\saves\\' + self.var_portfolio.get() + '.portfolio'
         allLines = []
@@ -353,7 +357,6 @@ class stocksContainer(tk.Frame):
         self.root = root
         self.configure(background=backgroundColor)        
         self.stockList = []
-        self.tickerList = []
         
         
     def addstock(self, ticker, quantity=0, price=0, currency='CAD', doValidate=True):
@@ -364,7 +367,6 @@ class stocksContainer(tk.Frame):
         
         if validate == True:
             self.stockList.append(stock(self, ticker, quantity, price))
-            self.tickerList.append(ticker)
             self.stockList[-1].clock()
             self.updateLayout()
 
